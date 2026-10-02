@@ -1,30 +1,42 @@
 // Todas las llamadas a la API de NestJS (back-tc2007) viven aquí.
+// Se usa axios en lugar de fetch.
 
+import axios from 'axios'
 import * as demo from './data/demo.js'
 
-// ⭐ MODO DEMO: true = usa datos de prueba (no necesita backend).
-//    Para conectar al backend real, cámbialo a false.
+// MODO DEMO: true = usa datos de prueba 
 export const MODO_DEMO = true
 
-// Roles (tabla `rol`). El 3 y el 4 hay que agregarlos a la base (ver README del dashboard).
+// Roles - El 3 y el 4 hay que agregarlos a la base 
 export const ROLES = {
   USUARIO: 1,
   ADMIN: 2,
   SUPERADMIN: 3,
-  PENDIENTE: 4, // pidió cuenta de administrador y espera aprobación
+  PENDIENTE: 4, 
 }
 
 const ACCESS_KEY = 'ofraud_access'
 const REFRESH_KEY = 'ofraud_refresh'
-let accessToken = sessionStorage.getItem(ACCESS_KEY)
-let refreshToken = sessionStorage.getItem(REFRESH_KEY)
 let avisarSesionExpirada = () => {}
 
-// Copias de los datos demo; los cambios duran mientras no recargues la página
+// Copias de los datos demo
 let demoReportes = demo.reportes.map((r) => ({ ...r }))
 let demoUsuarios = demo.usuarios.map((u) => ({ ...u }))
 
-// ---------- Token ----------
+// ---------- Tokens ----------
+function getAccessToken() {
+  return sessionStorage.getItem(ACCESS_KEY)
+}
+
+function getRefreshToken() {
+  return sessionStorage.getItem(REFRESH_KEY)
+}
+
+function guardarTokens(access, refresh) {
+  sessionStorage.setItem(ACCESS_KEY, access)
+  if (refresh) sessionStorage.setItem(REFRESH_KEY, refresh)
+}
+
 function leerToken(token) {
   try {
     const parte = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
@@ -34,25 +46,17 @@ function leerToken(token) {
   }
 }
 
-// En modo demo se arma un token "de mentira" con la misma forma que el real
+// Token "de mentira" para demo
 function tokenDemo(usuario) {
   const datos = { sub: usuario.id, email: usuario.correo, rolId: usuario.rolId, type: 'access' }
   return 'demo.' + btoa(unescape(encodeURIComponent(JSON.stringify(datos)))) + '.demo'
 }
 
-function guardarTokens(access, refresh) {
-  accessToken = access
-  sessionStorage.setItem(ACCESS_KEY, access)
-  if (refresh) {
-    refreshToken = refresh
-    sessionStorage.setItem(REFRESH_KEY, refresh)
-  }
-}
-
-// Datos de quien inició sesión: { id, correo, rolId } o null
+// Datos de quien inició sesión
 export function sesionActual() {
-  if (!accessToken) return null
-  const datos = leerToken(accessToken)
+  const token = getAccessToken()
+  if (!token) return null
+  const datos = leerToken(token)
   if (!datos) return null
   return { id: datos.sub, correo: datos.email, rolId: datos.rolId }
 }
@@ -62,72 +66,77 @@ export function alExpirarSesion(funcion) {
 }
 
 export function cerrarSesion() {
-  accessToken = null
-  refreshToken = null
   sessionStorage.removeItem(ACCESS_KEY)
   sessionStorage.removeItem(REFRESH_KEY)
 }
 
-async function leerMensajeError(res) {
-  try {
-    const datos = await res.json()
-    return Array.isArray(datos.message) ? datos.message.join('. ') : datos.message
-  } catch {
-    return null
-  }
+// ---------- Cliente axios ----------
+const api = axios.create()
+
+// Pone el Bearer en cada petición
+api.interceptors.request.use((config) => {
+  const token = getAccessToken()
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+// Si llega 401, pide un token nuevo con el refreshToken y reintenta una vez
+let renovando = null
+
+function renovarToken() {
+  // Esta petición no pasa por los interceptores de `api`
+  renovando ??= axios
+    .post('/auth/refresh', { refreshToken: getRefreshToken() })
+    .then(({ data }) => guardarTokens(data.accessToken))
+    .finally(() => {
+      renovando = null
+    })
+  return renovando
 }
 
-// El token de acceso dura 15 minutos; con el refreshToken se pide uno nuevo sin volver a loguearse
-async function renovarToken() {
-  if (!refreshToken) return false
-  try {
-    const res = await fetch('/auth/refresh', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    })
-    if (!res.ok) return false
-    const datos = await res.json()
-    guardarTokens(datos.accessToken)
-    return true
-  } catch {
-    return false
-  }
-}
-
-// Función base: agrega el token, lo renueva si expiró y maneja errores
-async function pedir(ruta, opciones = {}, reintento = true, tokenPropio = null) {
-  const token = tokenPropio ?? accessToken
-  let res
-  try {
-    res = await fetch(ruta, {
-      ...opciones,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    })
-  } catch {
-    throw new Error('No se pudo conectar con la API. Revisa que el backend esté corriendo.')
-  }
-
-  if (res.status === 401 && !tokenPropio) {
-    if (reintento && (await renovarToken())) {
-      return pedir(ruta, opciones, false)
+api.interceptors.response.use(
+  (respuesta) => respuesta,
+  async (error) => {
+    const original = error.config
+    const es401 = error.response?.status === 401
+    const esRutaAuth = original?.url?.startsWith('/auth/')
+    if (!es401 || !original || original._reintento || esRutaAuth) {
+      return Promise.reject(error)
     }
-    cerrarSesion()
-    avisarSesionExpirada()
-    throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.')
+
+    original._reintento = true
+    try {
+      await renovarToken()
+    } catch (e) {
+      cerrarSesion()
+      avisarSesionExpirada()
+      return Promise.reject(e)
+    }
+    return api(original)
+  },
+)
+
+// Convierte cualquier error de axios en un mensaje para mostrar
+function mensajeDeError(e) {
+  if (axios.isAxiosError(e)) {
+    if (!e.response) return 'No se pudo conectar con la API. Revisa que el backend esté corriendo.'
+    if (e.response.status === 401) return 'Tu sesión expiró. Vuelve a iniciar sesión.'
+    if (e.response.status === 403) return 'Tu usuario no tiene permiso para esta acción.'
+    const mensaje = e.response.data?.message
+    if (mensaje) return Array.isArray(mensaje) ? mensaje.join('. ') : mensaje
+    return `La API respondió con error ${e.response.status}.`
   }
-  if (res.status === 403) {
-    throw new Error('Tu usuario no tiene permiso para esta acción.')
+  return e?.message || 'Ocurrió un error inesperado'
+}
+
+// Hace la petición y, si falla, lanza un Error con un mensaje entendible
+async function pedir(promesa) {
+  try {
+    const { data } = await promesa
+    return data
+  } catch (e) {
+    throw new Error(mensajeDeError(e))
   }
-  if (!res.ok) {
-    const mensaje = await leerMensajeError(res)
-    throw new Error(mensaje || `La API respondió con error ${res.status}.`)
-  }
-  if (res.status === 204) return null
-  return res.json()
 }
 
 // Revisa el rol y decide si puede entrar al panel
@@ -153,38 +162,25 @@ export async function iniciarSesion(email, password) {
     return
   }
 
-  let res
+  let datos
   try {
-    res = await fetch('/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: correo, password }),
-    })
-  } catch {
-    throw new Error('No se pudo conectar con la API. Revisa que el backend esté corriendo.')
+    const respuesta = await api.post('/auth/login', { email: correo, password })
+    datos = respuesta.data
+  } catch (e) {
+    if (e.response?.status === 401) {
+      throw new Error('Correo o contraseña incorrectos. Revisa tus datos e intenta de nuevo.')
+    }
+    if (e.response?.status === 400) {
+      throw new Error('Escribe un correo válido, por ejemplo admin@0fraudstay.mx.')
+    }
+    throw new Error(mensajeDeError(e))
   }
 
-  if (res.status === 401) {
-    throw new Error('Correo o contraseña incorrectos. Revisa tus datos e intenta de nuevo.')
-  }
-  if (res.status === 400) {
-    throw new Error('Escribe un correo válido, por ejemplo admin@0fraudstay.mx.')
-  }
-  if (!res.ok) {
-    const mensaje = await leerMensajeError(res)
-    throw new Error(mensaje || `La API respondió con error ${res.status}.`)
-  }
-
-  const datos = await res.json()
   validarRol(leerToken(datos.accessToken)?.rolId)
   guardarTokens(datos.accessToken, datos.refreshToken)
 }
 
-// ---------- Crear cuenta (queda como solicitud pendiente) ----------
-// Con el backend actual se hace en 3 pasos:
-// 1) POST /auth/register crea la cuenta (nace con rol 1)
-// 2) POST /auth/login para obtener un token de esa cuenta nueva
-// 3) PATCH /usuarios/:id con rolId 4 para marcarla como "pendiente de aprobación"
+// ---------- Crear cuenta (solicitud pendiente) ----------
 export async function solicitarCuenta({ nombre, email, password }) {
   const correo = email.trim().toLowerCase()
 
@@ -203,34 +199,25 @@ export async function solicitarCuenta({ nombre, email, password }) {
     return
   }
 
-  let res
+  let nuevo
   try {
-    res = await fetch('/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: correo, password, nombre: nombre.trim() }),
-    })
-  } catch {
-    throw new Error('No se pudo conectar con la API. Revisa que el backend esté corriendo.')
+    const respuesta = await api.post('/auth/register', { email: correo, password, nombre: nombre.trim() })
+    nuevo = respuesta.data // { id, email }
+  } catch (e) {
+    if (e.response?.status === 409) {
+      throw new Error('Ese correo ya tiene una cuenta. Inicia sesión o usa otro correo.')
+    }
+    throw new Error(mensajeDeError(e))
   }
-  if (res.status === 409) {
-    throw new Error('Ese correo ya tiene una cuenta. Inicia sesión o usa otro correo.')
-  }
-  if (!res.ok) {
-    const mensaje = await leerMensajeError(res)
-    throw new Error(mensaje || `La API respondió con error ${res.status}.`)
-  }
-  const nuevo = await res.json() // { id, email }
 
-  const login = await fetch('/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: correo, password }),
-  })
-  if (!login.ok) throw new Error('La cuenta se creó, pero no se pudo registrar la solicitud. Avisa a un superadministrador.')
-  const { accessToken: tokenNuevo } = await login.json()
-
-  await pedir(`/usuarios/${nuevo.id}`, { method: 'PATCH', body: JSON.stringify({ rolId: ROLES.PENDIENTE }) }, false, tokenNuevo)
+  const tokens = await pedir(api.post('/auth/login', { email: correo, password }))
+  await pedir(
+    axios.patch(
+      `/usuarios/${nuevo.id}`,
+      { rolId: ROLES.PENDIENTE },
+      { headers: { Authorization: `Bearer ${tokens.accessToken}` } },
+    ),
+  )
 }
 
 // ---------- Lectura ----------
@@ -247,12 +234,12 @@ export async function cargarTodo() {
   }
 
   const [reportes, estados, tiposFraude, fuentes, tiposPropiedad, usuarios] = await Promise.all([
-    pedir('/reportes'),
-    pedir('/estados'),
-    pedir('/tipos-fraude'),
-    pedir('/fuentes'),
-    pedir('/tipos-propiedad'),
-    pedir('/usuarios').catch(() => []), // si falla, se muestra el id del usuario
+    pedir(api.get('/reportes')),
+    pedir(api.get('/estados')),
+    pedir(api.get('/tipos-fraude')),
+    pedir(api.get('/fuentes')),
+    pedir(api.get('/tipos-propiedad')),
+    pedir(api.get('/usuarios')).catch(() => []), // si falla, se muestra el id del usuario
   ])
   return { reportes, estados, tiposFraude, fuentes, tiposPropiedad, usuarios }
 }
@@ -263,7 +250,7 @@ export async function actualizarReporte(id, cambios) {
     demoReportes = demoReportes.map((r) => (r.id === id ? { ...r, ...cambios, updatedAt: new Date().toISOString() } : r))
     return demoReportes.find((r) => r.id === id)
   }
-  return pedir(`/reportes/${id}`, { method: 'PATCH', body: JSON.stringify(cambios) })
+  return pedir(api.patch(`/reportes/${id}`, cambios))
 }
 
 export async function eliminarReporte(id) {
@@ -271,7 +258,7 @@ export async function eliminarReporte(id) {
     demoReportes = demoReportes.filter((r) => r.id !== id)
     return null
   }
-  return pedir(`/reportes/${id}`, { method: 'DELETE' })
+  return pedir(api.delete(`/reportes/${id}`))
 }
 
 // Cambia el rol de un usuario: aprobar (→ ADMIN), rechazar o quitar acceso (→ USUARIO)
@@ -281,5 +268,5 @@ export async function cambiarRol(idUsuario, rolId) {
     const { contrasena, ...usuario } = demoUsuarios.find((u) => u.id === idUsuario)
     return usuario
   }
-  return pedir(`/usuarios/${idUsuario}`, { method: 'PATCH', body: JSON.stringify({ rolId }) })
+  return pedir(api.patch(`/usuarios/${idUsuario}`, { rolId }))
 }
