@@ -4,8 +4,8 @@
 import axios from 'axios'
 import * as demo from './data/demo.js'
 
-// MODO DEMO: true = usa datos de prueba 
-export const MODO_DEMO = true
+// MODO DEMO: false = datos del Backend 
+export const MODO_DEMO = false
 
 // Roles - El 3 y el 4 hay que agregarlos a la base 
 export const ROLES = {
@@ -71,6 +71,8 @@ export function cerrarSesion() {
 }
 
 // ---------- Cliente axios ----------
+// Todas las peticiones van a /api (el proxy de Vite las manda al backend)
+axios.defaults.baseURL = '/api'
 const api = axios.create()
 
 // Pone el Bearer en cada petición
