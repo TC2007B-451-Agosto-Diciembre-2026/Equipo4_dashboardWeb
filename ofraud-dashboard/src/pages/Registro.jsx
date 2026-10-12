@@ -1,3 +1,4 @@
+import { Check, Circle, Eye, EyeOff, House } from 'lucide-react'
 import { useState } from 'react'
 import { solicitarCuenta } from '../api.js'
 
@@ -43,14 +44,14 @@ export default function Registro({ onVolver }) {
     <div className="login-fondo">
       <div className="login-caja">
         <div className="login-encabezado">
-          <div className="logo">🏠</div>
+          <div className="logo"><House size={30} /></div>
           <h1 className="login-titulo">0Fraud Stay</h1>
           <div className="login-sub">SOLICITUD DE ACCESO</div>
         </div>
 
         {enviada ? (
           <div className="login-tarjeta registro-exito">
-            <div className="exito-icono">✓</div>
+            <div className="exito-icono"><Check size={26} strokeWidth={2.5} /></div>
             <h2>Solicitud enviada</h2>
             <p className="login-texto">
               Un superadministrador revisará tu solicitud. Cuando la apruebe, podrás entrar al panel con{' '}
@@ -77,14 +78,14 @@ export default function Registro({ onVolver }) {
                 autoComplete="new-password" value={contrasena} onChange={(e) => setContrasena(e.target.value)} />
               <button type="button" className="ojo" aria-label={verContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 onClick={() => setVerContrasena(!verContrasena)}>
-                {verContrasena ? '🙈' : '👁'}
+                {verContrasena ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
 
             <ul className="reglas">
               {REGLAS.map((r) => (
                 <li key={r.texto} className={r.cumple(contrasena) ? 'regla-ok' : ''}>
-                  {r.cumple(contrasena) ? '✓' : '○'} {r.texto}
+                  {r.cumple(contrasena) ? <Check size={14} strokeWidth={2.5} /> : <Circle size={12} />} {r.texto}
                 </li>
               ))}
             </ul>

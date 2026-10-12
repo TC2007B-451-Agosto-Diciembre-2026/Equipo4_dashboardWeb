@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { RefreshCw } from 'lucide-react'
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
@@ -79,8 +80,9 @@ export default function Dashboard({ reportes, onAbrirReporte, onRecargar, cargan
           <h1>Dashboard general</h1>
           <p>Estadísticas de actividad · {rangoMeses(tendencia)}</p>
         </div>
-               <button className="boton-borde" onClick={actualizar} disabled={ocupado}>
-          {ocupado ? 'Actualizando…' : '↻ Actualizar'}
+        <button className="boton-borde" onClick={actualizar} disabled={ocupado}>
+          <RefreshCw size={15} className={ocupado ? 'girando' : ''} />
+          {ocupado ? 'Actualizando…' : 'Actualizar'}
         </button>
       </div>
 
