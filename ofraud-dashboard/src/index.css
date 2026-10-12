@@ -364,3 +364,19 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .tu { color: var(--gris); font-weight: 400; }
 p.login-volver { color: #a0a0a8; font-size: 15px; }
 p.login-volver .login-enlace { font-size: 15px; }
+
+/* ===== Íconos (lucide-react) ===== */
+.lucide { flex-shrink: 0; }
+.logo, .nav-icono, .clasificar-icono, .boton-cerrar, .ojo, .exito-icono { display: grid; place-items: center; }
+.logo { color: white; }
+.nav-icono { width: 20px; }
+.admin-avatar { color: #d8d8de; }
+.ojo { color: #a0a0a8; padding: 6px; border-radius: 6px; }
+.ojo:hover { color: white; background: #3a3940; }
+.boton-borde, .boton-accion { display: inline-flex; align-items: center; gap: 6px; }
+.buscador { color: var(--gris); }
+.reglas li { display: flex; align-items: center; gap: 6px; }
+.clasificar-icono { width: 36px; height: 36px; border-radius: 9px; background: rgba(255, 255, 255, .6); }
+.clasificar.elegido .clasificar-icono { background: rgba(255, 255, 255, .2); }
+.girando { animation: girar .8s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }

@@ -1,12 +1,13 @@
+import { CircleCheck, Pencil, SearchCheck, ShieldAlert, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ESTILOS_ESTADO, claveEstado, nombreDe } from '../data/formato.js'
 import EditarReporte from './EditarReporte.jsx'
 import { obtenerAutor } from '../api.js'
 
 const BOTONES = [
-  { clave: 'fraude', clase: 'clasificar-rojo', icono: '🚨', titulo: 'Confirmar fraude', texto: 'El reporte será publicado como fraude verificado' },
-  { clave: 'revision', clase: 'clasificar-naranja', icono: '🔍', titulo: 'Poner en revisión', texto: 'Requiere más información antes de clasificar' },
-  { clave: 'no_fraude', clase: 'clasificar-verde', icono: '✓', titulo: 'Rechazar — no es fraude', texto: 'El reporte no cumple con criterios de fraude' },
+  { clave: 'fraude', clase: 'clasificar-rojo', icono: ShieldAlert, titulo: 'Confirmar fraude', texto: 'El reporte será publicado como fraude verificado' },
+  { clave: 'revision', clase: 'clasificar-naranja', icono: SearchCheck, titulo: 'Poner en revisión', texto: 'Requiere más información antes de clasificar' },
+  { clave: 'no_fraude', clase: 'clasificar-verde', icono:   CircleCheck, titulo: 'Rechazar — no es fraude', texto: 'El reporte no cumple con criterios de fraude' },
 ]
 
 export default function DetalleReporte({ reporte, catalogos, onCerrar, onActualizar, onEliminar }) {
@@ -74,11 +75,11 @@ export default function DetalleReporte({ reporte, catalogos, onCerrar, onActuali
         <div className="panel-acciones">
           {!editando && (
             <>
-              <button className="boton-borde" onClick={() => setEditando(true)}>✏️ Editar</button>
-              <button className="boton-borde boton-borde-rojo" onClick={eliminar} disabled={guardando}>🗑 Eliminar</button>
+              <button className="boton-borde" onClick={() => setEditando(true)}><Pencil size={15} /> Editar</button>
+              <button className="boton-borde boton-borde-rojo" onClick={eliminar} disabled={guardando}><Trash2 size={15} /> Eliminar</button>
             </>
           )}
-          <button className="boton-cerrar" aria-label="Cerrar" onClick={onCerrar}>×</button>
+          <button className="boton-cerrar" aria-label="Cerrar" onClick={onCerrar}><X size={18} /></button>
         </div>
       </div>
 
@@ -140,7 +141,7 @@ export default function DetalleReporte({ reporte, catalogos, onCerrar, onActuali
                 disabled={guardando || !existe}
                 title={existe ? '' : 'Este estado no existe en la base de datos'}
               >
-                <span className="clasificar-icono">{b.icono}</span>
+                <span className="clasificar-icono"><b.icono size={18} /></span>
                 <span>
                   <strong>{b.titulo}</strong>
                   <small>{existe ? b.texto : 'No hay un estado equivalente en la base de datos'}</small>

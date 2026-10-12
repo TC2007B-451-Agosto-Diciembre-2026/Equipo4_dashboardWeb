@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react'
 import { useState } from 'react'
 import { ROLES } from '../api.js'
 import { formatearFecha } from '../data/formato.js'
@@ -77,7 +78,7 @@ export default function Solicitudes({ usuarios, sesion, onCambiarRol }) {
                         disabled={trabajando === u.id}
                         onClick={() => cambiar(u, ROLES.ADMIN, `${u.nombre} ya puede entrar al panel.`)}
                       >
-                        ✓ Aprobar
+                        <Check size={15} strokeWidth={2.5} /> Aprobar
                       </button>
                       <button
                         className="boton-accion boton-rechazar"

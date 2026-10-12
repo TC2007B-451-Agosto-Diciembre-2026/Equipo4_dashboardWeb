@@ -1,3 +1,4 @@
+import { RefreshCw } from 'lucide-react'
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
@@ -55,7 +56,8 @@ export default function Dashboard({ reportes, catalogos, onAbrirReporte, onRecar
           <p>Estadísticas de actividad · {rangoMeses(tendencia)}</p>
         </div>
         <button className="boton-borde" onClick={onRecargar} disabled={cargando}>
-          {cargando ? 'Actualizando…' : '↻ Actualizar'}
+          <RefreshCw size={15} className={cargando ? 'girando' : ''} />
+          {cargando ? 'Actualizando…' : 'Actualizar'}
         </button>
       </div>
 

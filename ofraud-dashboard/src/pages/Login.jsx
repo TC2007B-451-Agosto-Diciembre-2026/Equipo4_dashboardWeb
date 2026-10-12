@@ -1,3 +1,4 @@
+import { Eye, EyeOff, House } from 'lucide-react'
 import { useState } from 'react'
 import { iniciarSesion, MODO_DEMO } from '../api.js'
 
@@ -26,7 +27,7 @@ export default function Login({ onEntrar, onCrearCuenta }) {
     <div className="login-fondo">
       <div className="login-caja">
         <div className="login-encabezado">
-          <div className="logo">🏠</div>
+          <div className="logo"><House size={30} /></div>
           <h1 className="login-titulo">0Fraud Stay</h1>
           <div className="login-sub">ACCESO ADMINISTRADOR</div>
         </div>
@@ -63,7 +64,7 @@ export default function Login({ onEntrar, onCrearCuenta }) {
               aria-label={verContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               onClick={() => setVerContrasena(!verContrasena)}
             >
-              {verContrasena ? '🙈' : '👁'}
+              {verContrasena ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
 

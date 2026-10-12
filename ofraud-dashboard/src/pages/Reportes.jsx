@@ -1,3 +1,4 @@
+import { Search } from 'lucide-react'
 import { useState } from 'react'
 import { ESTILOS_ESTADO, contarPorEstado, nombreDe } from '../data/formato.js'
 import DetalleReporte from '../components/DetalleReporte.jsx'
@@ -39,7 +40,7 @@ export default function Reportes({ reportes, catalogos, seleccionado, onSeleccio
 
           <div className="filtros">
             <div className="buscador">
-              <span>🔍</span>
+              <Search size={17} />
               <input
                 placeholder="Buscar por folio, título o usuario…"
                 value={busqueda}
