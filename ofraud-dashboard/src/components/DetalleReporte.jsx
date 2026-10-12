@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ESTILOS_ESTADO, claveEstado, nombreDe } from '../data/formato.js'
 import EditarReporte from './EditarReporte.jsx'
+import { obtenerAutor } from '../api.js'
 
 const BOTONES = [
   { clave: 'fraude', clase: 'clasificar-rojo', icono: '🚨', titulo: 'Confirmar fraude', texto: 'El reporte será publicado como fraude verificado' },
@@ -12,6 +13,21 @@ export default function DetalleReporte({ reporte, catalogos, onCerrar, onActuali
   const [editando, setEditando] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
+  const [autor, setAutor] = useState(null)
+  const [errorAutor, setErrorAutor] = useState('')
+
+  // Cada vez que se abre un reporte, pide los datos de quien lo creó
+  useEffect(() => {
+    let vigente = true
+    setAutor(null)
+    setErrorAutor('')
+    obtenerAutor(reporte.id)
+      .then((datos) => vigente && setAutor(datos))
+      .catch((e) => vigente && setErrorAutor(e.message))
+    return () => {
+      vigente = false
+    }
+  }, [reporte.id])
 
   // Busca en el catálogo de estados el id que corresponde a cada botón
   function estadoPara(clave) {
@@ -81,8 +97,9 @@ export default function DetalleReporte({ reporte, catalogos, onCerrar, onActuali
           {error && <p className="aviso-error">{error}</p>}
 
           <div className="datos-grid">
-            <div className="dato"><span>USUARIO</span>{reporte.usuario}</div>
-            <div className="dato"><span>CORREO</span>{reporte.correo || '—'}</div>
+            <div className="dato"><span>USUARIO</span> {autor ? autor.nombre : errorAutor ? '—' : 'Cargando…'}</div>
+            <div className="dato"><span>CORREO</span>  {autor ? autor.correo : errorAutor ? '—' : 'Cargando…'}</div>
+            {errorAutor && <p className="aviso-error dato-ancho">{errorAutor}</p>}
             <div className="dato"><span>PLATAFORMA</span>{reporte.plataforma}</div>
             <div className="dato"><span>TIPOLOGÍA</span>{reporte.tipologia}</div>
             <div className="dato"><span>TIPO DE PROPIEDAD</span>{reporte.tipoPropiedad}</div>

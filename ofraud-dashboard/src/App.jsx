@@ -96,7 +96,9 @@ export default function App() {
   }
 
   async function cambiarRol(idUsuario, rolId) {
-    await api.cambiarRol(idUsuario, rolId)
+    const rolActual = catalogos.usuarios.find((u) => u.id === idUsuario)?.rolId
+    console.log('cambiarRol', { idUsuario, rolId, rolActual })
+    await api.cambiarRol(idUsuario, rolId, rolActual)
     setCatalogos((c) => ({
       ...c,
       usuarios: c.usuarios.map((u) => (u.id === idUsuario ? { ...u, rolId } : u)),
