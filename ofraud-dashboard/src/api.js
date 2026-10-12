@@ -203,8 +203,7 @@ export async function solicitarCuenta({ nombre, email, password }) {
 
   let nuevo
   try {
-    const respuesta = await api.post('/auth/register', { email: correo, password, nombre: nombre.trim() })
-    nuevo = respuesta.data // { id, email }
+    await api.post('/auth/register-admin', { email: correo, password, nombre: nombre.trim() })
   } catch (e) {
     if (e.response?.status === 409) {
       throw new Error('Ese correo ya tiene una cuenta. Inicia sesión o usa otro correo.')
@@ -212,14 +211,6 @@ export async function solicitarCuenta({ nombre, email, password }) {
     throw new Error(mensajeDeError(e))
   }
 
-  const tokens = await pedir(api.post('/auth/login', { email: correo, password }))
-  await pedir(
-    axios.patch(
-      `/usuarios/${nuevo.id}`,
-      { rolId: ROLES.PENDIENTE },
-      { headers: { Authorization: `Bearer ${tokens.accessToken}` } },
-    ),
-  )
 }
 
 // ---------- Lectura ----------
@@ -264,11 +255,35 @@ export async function eliminarReporte(id) {
 }
 
 // Cambia el rol de un usuario: aprobar (→ ADMIN), rechazar o quitar acceso (→ USUARIO)
-export async function cambiarRol(idUsuario, rolId) {
+export async function cambiarRol(idUsuario, rolId, rolActual) {
   if (MODO_DEMO) {
     demoUsuarios = demoUsuarios.map((u) => (u.id === idUsuario ? { ...u, rolId } : u))
     const { contrasena, ...usuario } = demoUsuarios.find((u) => u.id === idUsuario)
     return usuario
   }
-  return pedir(api.patch(`/usuarios/${idUsuario}`, { rolId }))
+
+  if (rolId === ROLES.ADMIN) {
+    return pedir(api.patch(`/auth/admins/${idUsuario}/approve`))
+  }
+
+  if (rolId === ROLES.USUARIO) {
+    if (Number(rolActual) === ROLES.PENDIENTE) {
+      return pedir(api.patch(`/auth/admins/${idUsuario}/reject`))
+    }
+    return pedir(api.patch(`/auth/admins/${idUsuario}/revoke`))
+  }
+
+  throw new Error('Cambio de rol no permitido desde el panel.')
+}
+
+// ---------- Datos del denunciante (solo admin) ----------
+export async function obtenerAutor(idReporte) {
+  if (MODO_DEMO) {
+    const reporte = demoReportes.find((r) => r.id === idReporte)
+    const usuario = demoUsuarios.find((u) => u.id === reporte?.usuarioId)
+    if (!usuario) throw new Error('No se encontró al autor del reporte.')
+    const { contrasena, ...datos } = usuario
+    return datos
+  }
+  return pedir(api.get(`/reportes/${idReporte}/autor`)) // { id, correo, nombre, rolId, createdAt }
 }
