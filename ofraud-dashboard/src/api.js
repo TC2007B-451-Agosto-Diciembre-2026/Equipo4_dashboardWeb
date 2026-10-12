@@ -286,4 +286,12 @@ export async function obtenerAutor(idReporte) {
     return datos
   }
   return pedir(api.get(`/reportes/${idReporte}/autor`)) // { id, correo, nombre, rolId, createdAt }
+
 }
+
+// ---------- Estadísticas del dashboard (GET /estadisticas, solo admin) ----------
+export async function cargarEstadisticas() {
+  return pedir(api.get('/estadisticas'))
+}
+
+
