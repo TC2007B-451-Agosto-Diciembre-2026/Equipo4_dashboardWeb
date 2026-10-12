@@ -25,8 +25,8 @@ export function claveEstado(nombre) {
   const t = sinAcentos(nombre || '')
   if (t.includes('pend')) return 'pendiente'
   if (t.includes('revis')) return 'revision'
-  if (t.includes('rechaz')) return 'no_fraude'
-  if (t.includes('verific')) return 'fraude'
+  if (t.includes('rechaz') || t.includes('no es')) return 'no_fraude'
+  if (t.includes('verific') || t.includes('confirm')) return 'fraude'
   return 'otro'
 }
 
