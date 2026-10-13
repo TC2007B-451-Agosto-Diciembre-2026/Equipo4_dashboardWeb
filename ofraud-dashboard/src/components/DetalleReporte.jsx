@@ -120,10 +120,25 @@ export default function DetalleReporte({ reporte, catalogos, onCerrar, onActuali
           <div className="descripcion">{reporte.descripcion}</div>
 
           <div className="seccion-titulo">EVIDENCIA ADJUNTA</div>
-          {reporte.fotoUrl ? (
-            <a href={reporte.fotoUrl} target="_blank" rel="noreferrer">
-              <img className="foto-evidencia" src={reporte.fotoUrl} alt={`Evidencia del reporte ${reporte.folio}`} />
-            </a>
+          {reporte.fotoUrl || reporte.evidenciaUrl ? (
+            <div className="fotos-reporte">
+              {reporte.fotoUrl && (
+                <figure>
+                  <a href={reporte.fotoUrl} target="_blank" rel="noreferrer">
+                    <img className="foto-evidencia" src={reporte.fotoUrl} alt={`Portada del reporte ${reporte.folio}`} />
+                  </a>
+                  <figcaption>Portada</figcaption>
+                </figure>
+              )}
+              {reporte.evidenciaUrl && (
+                <figure>
+                  <a href={reporte.evidenciaUrl} target="_blank" rel="noreferrer">
+                    <img className="foto-evidencia" src={reporte.evidenciaUrl} alt={`Evidencia del reporte ${reporte.folio}`} />
+                  </a>
+                  <figcaption>Evidencia</figcaption>
+                </figure>
+              )}
+            </div>
           ) : (
             <div className="evidencia evidencia-vacia">Este reporte no tiene archivos adjuntos</div>
           )}
