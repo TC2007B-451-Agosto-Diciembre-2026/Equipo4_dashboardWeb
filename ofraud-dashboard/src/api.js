@@ -5,7 +5,7 @@ import axios from 'axios'
 import * as demo from './data/demo.js'
 
 // MODO DEMO: true = usa datos de prueba 
-export const MODO_DEMO = true
+export const MODO_DEMO = false
 
 // Roles - El 3 y el 4 hay que agregarlos a la base 
 export const ROLES = {

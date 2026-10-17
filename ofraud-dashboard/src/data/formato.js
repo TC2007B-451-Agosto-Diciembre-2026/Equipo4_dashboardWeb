@@ -68,7 +68,7 @@ export function armarReporte(r, cat) {
     tipoPropiedad: nombreDe(buscar(cat.tiposPropiedad, r.tipoPropiedadId)),
     latitud: r.latitud,
     longitud: r.longitud,
-    fotoUrl: r.fotoUrl || null, // ej. /uploads/reportes/<archivo>.jpg
+    fotoUrl: r.evidencia ? `/api${r.evidencia}` : null, // la API manda /uploads/reportes/<archivo>.jpg
     creado: r.createdAt,
     fecha: formatearFecha(r.createdAt),
   }
